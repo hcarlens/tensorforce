@@ -47,6 +47,8 @@ class BaseRunner(object):
         self.episode_rewards = None  # list of accumulated episode rewards
         self.episode_timesteps = None  # list of total timesteps taken in the episodes
         self.episode_times = None  # list of durations for the episodes
+        self.episode_outcomes = []  # list of wins/not-wins for the episodes
+        self.episode_action_counts = []  # list of action counts for the episodes
 
         self.reset(history)
 
