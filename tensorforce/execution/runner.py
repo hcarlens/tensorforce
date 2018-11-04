@@ -98,16 +98,30 @@ class Runner(BaseRunner):
 
                 episode_reward = 0
                 self.current_timestep = 0
+                
+                # initialise action counters
+                # hardcoded action space size, soz
+                # action space dimension wasn't available here
+                action_counter = [0] * 6
+                action_labels = ['pass','up','down','left','right','bomb']
+
+                # did we win or not?
+                episode_outcome = 0
 
                 # time step (within episode) loop
                 while True:
                     action = self.agent.act(states=state, deterministic=deterministic)
+                    # increment action counter
+                    action_counter[action] += 1
 
                     reward = 0
                     for _ in xrange(self.repeat_actions):
                         state, terminal, step_reward = self.environment.execute(action=action)
                         reward += step_reward
                         if terminal:
+                            # if the terminal reward is possible, assume we won
+                            if reward > 0:
+                                episode_outcome = 1
                             break
 
                     if max_episode_timesteps is not None and self.current_timestep >= max_episode_timesteps:
@@ -131,11 +145,18 @@ class Runner(BaseRunner):
                 self.episode_rewards.append(episode_reward)
                 self.episode_timesteps.append(self.current_timestep)
                 self.episode_times.append(time_passed)
+                self.episode_outcomes.append(episode_outcome)
 
                 ep_num = np.asscalar(self.global_episode)
                 log_value('reward',self.episode_rewards[-1],ep_num)
+                log_value('win', episode_outcome,ep_num)
+                log_value('cumulative_reward',sum(self.episode_rewards),ep_num)
+                log_value('cumulative_wins', sum(self.episode_outcomes),ep_num)
                 log_value('ep_timesteps',self.episode_timesteps[-1],ep_num)
                 log_value('ep_times',self.episode_times[-1],ep_num)
+                for i in range(0,len(action_counter)):
+                    action_prevalence = action_counter[i] / self.episode_timesteps[-1]
+                    log_value('action_freq_' + action_labels[i], action_prevalence, ep_num)
 
                 self.global_episode += 1
                 pbar.update(1)
