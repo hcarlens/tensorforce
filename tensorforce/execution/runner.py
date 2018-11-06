@@ -84,6 +84,10 @@ class Runner(BaseRunner):
         if num_timesteps is not None:
             num_timesteps += self.agent.timestep
 
+        # Update global counters.
+        self.global_episode = self.agent.episode  # global value (across all agents)
+        self.global_timestep = self.agent.timestep  # global value (across all agents)
+
         # add progress bar
         with tqdm(total=num_episodes) as pbar:
             # episode loop
@@ -92,13 +96,10 @@ class Runner(BaseRunner):
                 state = self.environment.reset()
                 self.agent.reset()
 
-                # Update global counters.
-                self.global_episode = self.agent.episode  # global value (across all agents)
-                self.global_timestep = self.agent.timestep  # global value (across all agents)
 
                 episode_reward = 0
                 self.current_timestep = 0
-                
+
                 # initialise action counters
                 # hardcoded action space size, soz
                 # action space dimension wasn't available here
