@@ -152,6 +152,7 @@ class Runner(BaseRunner):
                 log_value('win', episode_outcome,ep_num)
                 log_value('cumulative_reward',sum(self.episode_rewards),ep_num)
                 log_value('cumulative_wins', sum(self.episode_outcomes),ep_num)
+                log_value('100_ep_avg_win', avg(self.episode_outcomes[-100:]),ep_num)
                 log_value('ep_timesteps',self.episode_timesteps[-1],ep_num)
                 log_value('ep_times',self.episode_times[-1],ep_num)
                 for i in range(0,len(action_counter)):
