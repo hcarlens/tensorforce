@@ -115,8 +115,6 @@ class Runner(BaseRunner):
                 # time step (within episode) loop
                 while True:
                     action = self.agent.act(states=state, deterministic=deterministic)
-                    active_agent = self.environment.gym.training_agent
-                    simple_action = self.simple_agent.act(self.environment.gym.observations[active_agent], action_counter)
                     # increment action counter
                     action_counter[action] += 1
 
@@ -132,6 +130,8 @@ class Runner(BaseRunner):
 
                     if self.use_simple_rewards:
                         #if simple agent took same move and simple agent wasn't random 
+                        active_agent = self.environment.gym.training_agent
+                        simple_action = self.simple_agent.act(self.environment.gym.observations[active_agent], action_counter)
                         if simple_action == action and self.simple_agent.was_random == False:
                             reward += 1
 
