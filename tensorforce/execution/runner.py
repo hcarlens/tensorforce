@@ -25,7 +25,9 @@ import warnings
 from inspect import getargspec
 from tqdm import tqdm
 from tensorboard_logger import log_value
-import numpy as np
+import numpy as np 
+import pommerman
+from pommerman.agents import SimpleAgent
 
 class Runner(BaseRunner):
     """
@@ -40,7 +42,7 @@ class Runner(BaseRunner):
             id_ (int): The ID of this Runner (for distributed TF runs).
         """
         super(Runner, self).__init__(agent, environment, repeat_actions, history)
-
+        self.simple_agent = SimpleAgent()
         self.id = id_  # the worker's ID in a distributed run (default=0)
         self.current_timestep = None  # the time step in the current episode
 
@@ -112,6 +114,8 @@ class Runner(BaseRunner):
                 # time step (within episode) loop
                 while True:
                     action = self.agent.act(states=state, deterministic=deterministic)
+                    active_agent = self.environment.gym.training_agent
+                    simple_action = self.simple_agent.act(self.environment.gym.observations[active_agent], action_counter)
                     # increment action counter
                     action_counter[action] += 1
 
@@ -124,6 +128,10 @@ class Runner(BaseRunner):
                             if reward > 0:
                                 episode_outcome = 1
                             break
+
+                    if simple_action == action and self.simple_agent.was_random == False:
+                        reward = 1;
+                        
 
                     if max_episode_timesteps is not None and self.current_timestep >= max_episode_timesteps:
                         terminal = True
