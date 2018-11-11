@@ -34,7 +34,7 @@ class Runner(BaseRunner):
     Simple runner for non-realtime single-process execution.
     """
 
-    def __init__(self, agent, environment, repeat_actions=1, history=None, id_=0):
+    def __init__(self, agent, environment, repeat_actions=1, history=None, id_=0, use_simple_rewards=False):
         """
         Initialize a single Runner object (one Agent/one Environment).
 
@@ -45,6 +45,7 @@ class Runner(BaseRunner):
         self.simple_agent = SimpleAgent()
         self.id = id_  # the worker's ID in a distributed run (default=0)
         self.current_timestep = None  # the time step in the current episode
+        self.use_simple_rewards = use_simple_rewards
 
     def close(self):
         self.agent.close()
@@ -129,11 +130,13 @@ class Runner(BaseRunner):
                                 episode_outcome = 1
                             break
 
-                    #if simple agent took same move and simple agent wasn't random 
-                    if simple_action == action and self.simple_agent.was_random == False:
-                        reward += 1
+                    if self.use_simple_rewards:
+                        #if simple agent took same move and simple agent wasn't random 
+                        if simple_action == action and self.simple_agent.was_random == False:
+                            reward += 1
 
                     # If an agent has died then give positive reward to alive agents
+
 
                     if max_episode_timesteps is not None and self.current_timestep >= max_episode_timesteps:
                         terminal = True
