@@ -129,9 +129,11 @@ class Runner(BaseRunner):
                                 episode_outcome = 1
                             break
 
+                    #if simple agent took same move and simple agent wasn't random 
                     if simple_action == action and self.simple_agent.was_random == False:
-                        reward = 1;
-                        
+                        reward += 1
+
+                    # If an agent has died then give positive reward to alive agents
 
                     if max_episode_timesteps is not None and self.current_timestep >= max_episode_timesteps:
                         terminal = True
