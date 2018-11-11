@@ -128,12 +128,12 @@ class Runner(BaseRunner):
                                 episode_outcome = 1
                             break
 
-                    if self.use_simple_rewards:
-                        #if simple agent took same move and simple agent wasn't random 
-                        active_agent = self.environment.gym.training_agent
-                        simple_action = self.simple_agent.act(self.environment.gym.observations[active_agent], action_counter)
-                        if simple_action == action and self.simple_agent.was_random == False:
-                            reward += 1
+                    # if self.use_simple_rewards:
+                    #     #if simple agent took same move and simple agent wasn't random 
+                    #     active_agent = self.environment.gym.training_agent
+                    #     simple_action = self.simple_agent.act(self.environment.gym.observations[active_agent], action_counter)
+                    #     if simple_action == action and self.simple_agent.was_random == False:
+                    #         reward += 1
 
                     # If an agent has died then give positive reward to alive agents
 
