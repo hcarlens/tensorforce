@@ -47,10 +47,10 @@ class Runner(BaseRunner):
         self.current_timestep = None  # the time step in the current episode
         self.use_simple_rewards = use_simple_rewards
         self.use_immediate_rewards = use_immediate_rewards
-        self.blast_strength_at_previous_timestep = 2
-        self.can_kick_at_previous_timestep = False
-        self.live_agents_at_previous_timestep = 4
-        self.ammo_at_previous_timestep = 1
+        self.blast_strength_at_previous_timestep = None
+        self.can_kick_at_previous_timestep = None
+        self.live_agents_at_previous_timestep = None
+        self.ammo_at_previous_timestep = None
 
     def close(self):
         self.agent.close()
@@ -115,6 +115,10 @@ class Runner(BaseRunner):
 
                 # did we win or not?
                 episode_outcome = 0
+                self.live_agents_at_previous_timestep = 4
+                self.blast_strength_at_previous_timestep = 2
+                self.can_kick_at_previous_timestep = False
+                self.ammo_at_previous_timestep = 1
 
                 # time step (within episode) loop
                 while True:
@@ -138,7 +142,7 @@ class Runner(BaseRunner):
                             power_up_bonus = 0.5
 
                             # if we're still alive and someone's just died we get a kill bonus
-                            if (13 in self.environment.gym.observations[self.environment.gym.training_agent]['alive']) and len(self.environment.gym.observations[self.environment.gym.training_agent]['alive']) > self.live_agents_at_previous_timestep:
+                            if (13 in self.environment.gym.observations[self.environment.gym.training_agent]['alive']) and len(self.environment.gym.observations[self.environment.gym.training_agent]['alive']) < self.live_agents_at_previous_timestep:
                                 reward += kill_bonus
 
                             # if we just picked up a power-up, we get a bonus
