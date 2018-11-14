@@ -47,10 +47,10 @@ class Runner(BaseRunner):
         self.current_timestep = None  # the time step in the current episode
         self.use_simple_rewards = use_simple_rewards
         self.use_immediate_rewards = use_immediate_rewards
-        self.blast_strength_at_previous_timestep = None
-        self.can_kick_at_previous_timestep = None
-        self.live_agents_at_previous_timestep = None
-        self.ammo_at_previous_timestep = None
+        self.blast_strength_at_previous_timestep = 2
+        self.can_kick_at_previous_timestep = False
+        self.live_agents_at_previous_timestep = 4
+        self.ammo_at_previous_timestep = 1
 
     def close(self):
         self.agent.close()
@@ -104,7 +104,6 @@ class Runner(BaseRunner):
                 state = self.environment.reset()
                 self.agent.reset()
 
-
                 episode_reward = 0
                 self.current_timestep = 0
 
@@ -123,7 +122,6 @@ class Runner(BaseRunner):
                     # increment action counter
                     action_counter[action] += 1
 
-                    reward = 0
                     for _ in xrange(self.repeat_actions):
                         if self.use_simple_rewards:
                             #if simple agent took same move and simple agent wasn't random 
@@ -131,31 +129,25 @@ class Runner(BaseRunner):
                             self.observation = (self.environment.gym.observations[self.active_agent]).copy()
                             
                         state, terminal, step_reward = self.environment.execute(action=action)
+                        reward = 0
                         reward += step_reward
-                        if terminal:
-                            # if the terminal reward is possible, assume we won
-                            if reward > 0:
-                                episode_outcome = 1
-                            break
 
                         if self.use_immediate_rewards:
                             # reward agent immediately for achieving certain things
                             kill_bonus = 5
                             power_up_bonus = 0.5
 
-                            # if we have values for previous timesteps...
-                            if self.ammo_at_previous_timestep:
-                                # if we're still alive and someone's just died we get a kill bonus
-                                if 13 in self.environment.gym.observations[self.environment.gym.training_agent]['alive'] and len(self.environment.gym.observations[self.environment.gym.training_agent]['alive']) > self.live_agents_at_previous_timestep:
-                                    reward += kill_bonus
+                            # if we're still alive and someone's just died we get a kill bonus
+                            if (13 in self.environment.gym.observations[self.environment.gym.training_agent]['alive']) and len(self.environment.gym.observations[self.environment.gym.training_agent]['alive']) > self.live_agents_at_previous_timestep:
+                                reward += kill_bonus
 
-                                # if we just picked up a power-up, we get a bonus
-                                if self.environment.gym.observations[self.environment.gym.training_agent]['blast_strength'] > self.blast_strength_at_previous_timestep:
-                                    reward += power_up_bonus
-                                if len(self.environment.gym.observations[self.environment.gym.training_agent]['alive']) > self.ammo_at_previous_timestep:
-                                    reward += power_up_bonus
-                                if self.environment.gym.observations[self.environment.gym.training_agent]['can_kick'] > self.can_kick_at_previous_timestep:
-                                    reward += power_up_bonus
+                            # if we just picked up a power-up, we get a bonus
+                            if self.environment.gym.observations[self.environment.gym.training_agent]['blast_strength'] > self.blast_strength_at_previous_timestep:
+                                reward += power_up_bonus
+                            if self.environment.gym.observations[self.environment.gym.training_agent]['ammo'] > max(1, self.ammo_at_previous_timestep):
+                                reward += power_up_bonus
+                            if self.environment.gym.observations[self.environment.gym.training_agent]['can_kick'] > self.can_kick_at_previous_timestep:
+                                reward += power_up_bonus
 
                             # save states for next time
                             self.live_agents_at_previous_timestep = len(self.environment.gym.observations[self.environment.gym.training_agent]['alive'])
@@ -167,6 +159,12 @@ class Runner(BaseRunner):
                             simple_action = self.simple_agent.act(self.observation, action_counter)
                             if simple_action == action and self.simple_agent.was_random == False:
                                 reward += 1
+
+                        if terminal:
+                            # if the terminal reward is positive, assume we won
+                            if reward > 0:
+                                episode_outcome = 1
+                            break
 
                     if max_episode_timesteps is not None and self.current_timestep >= max_episode_timesteps:
                         terminal = True
@@ -199,6 +197,12 @@ class Runner(BaseRunner):
                 log_value('100_ep_avg_win', np.mean(self.episode_outcomes[-100:]),ep_num)
                 log_value('ep_timesteps',self.episode_timesteps[-1],ep_num)
                 log_value('ep_times',self.episode_times[-1],ep_num)
+                survival_indicator = int(13 in self.environment.gym.observations[self.environment.gym.training_agent]['alive'])
+                log_value('survived', survival_indicator, ep_num)
+                log_value('surviving_agents', self.live_agents_at_previous_timestep, ep_num)
+                log_value('can_kick', self.can_kick_at_previous_timestep,ep_num)
+                log_value('blast_strength', self.blast_strength_at_previous_timestep,ep_num)
+
                 for i in range(0,len(action_counter)):
                     action_prevalence = action_counter[i] / self.episode_timesteps[-1]
                     log_value('action_freq_' + action_labels[i], action_prevalence, ep_num)
