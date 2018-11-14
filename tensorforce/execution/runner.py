@@ -34,7 +34,7 @@ class Runner(BaseRunner):
     Simple runner for non-realtime single-process execution.
     """
 
-    def __init__(self, agent, environment, repeat_actions=1, history=None, id_=0, use_simple_rewards=False):
+    def __init__(self, agent, environment, repeat_actions=1, history=None, id_=0, use_simple_rewards=False, use_immediate_rewards=False):
         """
         Initialize a single Runner object (one Agent/one Environment).
 
@@ -46,6 +46,11 @@ class Runner(BaseRunner):
         self.id = id_  # the worker's ID in a distributed run (default=0)
         self.current_timestep = None  # the time step in the current episode
         self.use_simple_rewards = use_simple_rewards
+        self.use_immediate_rewards = use_immediate_rewards
+        self.blast_strength_at_previous_timestep = None
+        self.can_kick_at_previous_timestep = None
+        self.live_agents_at_previous_timestep = None
+        self.ammo_at_previous_timestep = None
 
     def close(self):
         self.agent.close()
@@ -133,13 +138,35 @@ class Runner(BaseRunner):
                                 episode_outcome = 1
                             break
 
+                        if self.use_immediate_rewards:
+                            # reward agent immediately for achieving certain things
+                            kill_bonus = 5
+                            power_up_bonus = 0.5
+
+                            # if we have values for previous timesteps...
+                            if self.ammo_at_previous_timestep:
+                                # if we're still alive and someone's just died we get a kill bonus
+                                if 13 in self.environment.gym.observations[self.environment.gym.training_agent]['alive'] and len(self.environment.gym.observations[self.environment.gym.training_agent]['alive']) > self.live_agents_at_previous_timestep:
+                                    reward += kill_bonus
+
+                                # if we just picked up a power-up, we get a bonus
+                                if self.environment.gym.observations[self.environment.gym.training_agent]['blast_strength'] > self.blast_strength_at_previous_timestep:
+                                    reward += power_up_bonus
+                                if len(self.environment.gym.observations[self.environment.gym.training_agent]['alive']) > self.ammo_at_previous_timestep:
+                                    reward += power_up_bonus
+                                if self.environment.gym.observations[self.environment.gym.training_agent]['can_kick'] > self.can_kick_at_previous_timestep:
+                                    reward += power_up_bonus
+
+                            # save states for next time
+                            self.live_agents_at_previous_timestep = len(self.environment.gym.observations[self.environment.gym.training_agent]['alive'])
+                            self.blast_strength_at_previous_timestep = self.environment.gym.observations[self.environment.gym.training_agent]['blast_strength']
+                            self.can_kick_at_previous_timestep = self.environment.gym.observations[self.environment.gym.training_agent]['can_kick']
+                            self.ammo_at_previous_timestep = self.environment.gym.observations[self.environment.gym.training_agent]['ammo']
+
                         if self.use_simple_rewards and (self.environment.gym.observations[self.active_agent]).get("position") is not None:
                             simple_action = self.simple_agent.act(self.observation, action_counter)
                             if simple_action == action and self.simple_agent.was_random == False:
                                 reward += 1
-
-                    # If an agent has died then give positive reward to alive agents
-
 
                     if max_episode_timesteps is not None and self.current_timestep >= max_episode_timesteps:
                         terminal = True
